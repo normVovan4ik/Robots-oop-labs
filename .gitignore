@@ -2,3 +2,10 @@
 /robots/.settings
 /robots/bin
 eclipse.bat
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Результат сборки
+out/
