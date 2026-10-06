@@ -9,3 +9,6 @@ eclipse.bat
 
 # Результат сборки
 out/
+
+# Maven
+target/
