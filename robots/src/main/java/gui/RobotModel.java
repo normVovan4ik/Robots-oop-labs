@@ -8,6 +8,8 @@ public class RobotModel
 {
     public static final double MAX_VELOCITY = 0.1;
     public static final double MAX_ANGULAR_VELOCITY = 0.001;
+    /** Половина длины робота: до границы поля центр робота не должен подходить ближе. */
+    public static final double ROBOT_HALF_SIZE = 15;
 
     private volatile double m_positionX = 100;
     private volatile double m_positionY = 100;
@@ -15,6 +17,10 @@ public class RobotModel
 
     private volatile int m_targetX = 150;
     private volatile int m_targetY = 100;
+
+    /** Размер игрового поля. Ноль означает, что размер ещё неизвестен. */
+    private volatile int m_fieldWidth = 0;
+    private volatile int m_fieldHeight = 0;
 
     public double getPositionX()
     {
@@ -45,6 +51,17 @@ public class RobotModel
     {
         m_targetX = x;
         m_targetY = y;
+    }
+
+    /**
+     * Задаёт размер игрового поля. Если робот оказался за его границей
+     * (например, окно уменьшили), он сразу возвращается внутрь.
+     */
+    public void setFieldSize(int width, int height)
+    {
+        m_fieldWidth = width;
+        m_fieldHeight = height;
+        keepInsideField();
     }
 
     /**
@@ -93,6 +110,25 @@ public class RobotModel
         m_positionX = newX;
         m_positionY = newY;
         m_direction = asNormalizedRadians(m_direction + angularVelocity * duration);
+        keepInsideField();
+    }
+
+    private void keepInsideField()
+    {
+        if (m_fieldWidth > 0)
+        {
+            m_positionX = limitToField(m_positionX, m_fieldWidth);
+        }
+        if (m_fieldHeight > 0)
+        {
+            m_positionY = limitToField(m_positionY, m_fieldHeight);
+        }
+    }
+
+    private static double limitToField(double value, int fieldSize)
+    {
+        double margin = Math.min(ROBOT_HALF_SIZE, fieldSize / 2.0);
+        return applyLimits(value, margin, fieldSize - margin);
     }
 
     private static double distance(double x1, double y1, double x2, double y2)

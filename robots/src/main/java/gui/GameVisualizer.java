@@ -67,6 +67,7 @@ public class GameVisualizer extends JPanel
 
     protected void onModelUpdateEvent()
     {
+        m_model.setFieldSize(getWidth(), getHeight());
         m_model.update(10);
     }
 
