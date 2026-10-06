@@ -1,38 +1,40 @@
 package log;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 public class LogWindowSource
 {
     private final int m_iQueueLength;
 
     private final ArrayList<LogEntry> m_messages;
-    private final ArrayList<LogChangeListener> m_listeners;
-    private volatile LogChangeListener[] m_activeListeners;
+    private final ArrayList<WeakReference<LogChangeListener>> m_listeners;
 
     public LogWindowSource(int iQueueLength)
     {
         m_iQueueLength = iQueueLength;
         m_messages = new ArrayList<LogEntry>(iQueueLength);
-        m_listeners = new ArrayList<LogChangeListener>();
+        m_listeners = new ArrayList<WeakReference<LogChangeListener>>();
     }
 
     public void registerListener(LogChangeListener listener)
     {
-        synchronized(m_listeners)
+        synchronized (m_listeners)
         {
-            m_listeners.add(listener);
-            m_activeListeners = null;
+            m_listeners.add(new WeakReference<LogChangeListener>(listener));
         }
     }
 
     public void unregisterListener(LogChangeListener listener)
     {
-        synchronized(m_listeners)
+        synchronized (m_listeners)
         {
-            m_listeners.remove(listener);
-            m_activeListeners = null;
+            m_listeners.removeIf(ref -> {
+                LogChangeListener registered = ref.get();
+                return registered == null || registered == listener;
+            });
         }
     }
 
@@ -47,22 +49,28 @@ public class LogWindowSource
                 m_messages.remove(0);
             }
         }
-        LogChangeListener [] activeListeners = m_activeListeners;
-        if (activeListeners == null)
-        {
-            synchronized (m_listeners)
-            {
-                if (m_activeListeners == null)
-                {
-                    activeListeners = m_listeners.toArray(new LogChangeListener [0]);
-                    m_activeListeners = activeListeners;
-                }
-            }
-        }
-        for (LogChangeListener listener : activeListeners)
+        for (LogChangeListener listener : getActiveListeners())
         {
             listener.onLogChanged();
         }
+    }
+
+    private List<LogChangeListener> getActiveListeners()
+    {
+        List<LogChangeListener> result = new ArrayList<LogChangeListener>();
+        synchronized (m_listeners)
+        {
+            m_listeners.removeIf(ref -> ref.get() == null);
+            for (WeakReference<LogChangeListener> ref : m_listeners)
+            {
+                LogChangeListener listener = ref.get();
+                if (listener != null)
+                {
+                    result.add(listener);
+                }
+            }
+        }
+        return result;
     }
 
     public int size()

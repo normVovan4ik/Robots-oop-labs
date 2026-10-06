@@ -1,8 +1,10 @@
 package log;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,11 +84,60 @@ class LogWindowSourceTest {
         assertEquals(List.of("first"), messages(snapshot));
     }
 
+    @Test
+    void registeredListenerIsNotifiedOnAppend() {
+        LogWindowSource source = new LogWindowSource(10);
+        CountingListener listener = new CountingListener();
+        source.registerListener(listener);
+
+        source.append(LogLevel.Debug, "hello");
+
+        assertEquals(1, listener.calls);
+    }
+
+    @Test
+    void unregisteredListenerIsNotNotified() {
+        LogWindowSource source = new LogWindowSource(10);
+        CountingListener listener = new CountingListener();
+        source.registerListener(listener);
+        source.append(LogLevel.Debug, "first");
+
+        source.unregisterListener(listener);
+        source.append(LogLevel.Debug, "second");
+
+        assertEquals(1, listener.calls);
+    }
+
+    @Test
+    void listenerThatNobodyReferencesIsNotKeptInMemory() throws InterruptedException {
+        LogWindowSource source = new LogWindowSource(10);
+        CountingListener listener = new CountingListener();
+        WeakReference<CountingListener> reference = new WeakReference<>(listener);
+        source.registerListener(listener);
+        listener = null;
+
+        for (int i = 0; i < 50 && reference.get() != null; i++) {
+            System.gc();
+            Thread.sleep(20);
+        }
+
+        assertNull(reference.get());
+    }
+
     private static List<String> messages(Iterable<LogEntry> entries) {
         List<String> result = new ArrayList<>();
         for (LogEntry entry : entries) {
             result.add(entry.getMessage());
         }
         return result;
+    }
+
+    private static class CountingListener implements LogChangeListener {
+        int calls;
+
+        @Override
+        public void onLogChanged() {
+            calls++;
+        }
     }
 }
