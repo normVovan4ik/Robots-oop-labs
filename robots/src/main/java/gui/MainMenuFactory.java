@@ -16,22 +16,33 @@ import log.Logger;
 public class MainMenuFactory
 {
     private final Consumer<String> lookAndFeelSwitcher;
+    private final Runnable exitAction;
 
     /**
      * @param lookAndFeelSwitcher действие, которое переключает схему оформления
      *                            по имени класса Look and Feel
+     * @param exitAction          действие пункта «Выйти»
      */
-    public MainMenuFactory(Consumer<String> lookAndFeelSwitcher)
+    public MainMenuFactory(Consumer<String> lookAndFeelSwitcher, Runnable exitAction)
     {
         this.lookAndFeelSwitcher = lookAndFeelSwitcher;
+        this.exitAction = exitAction;
     }
 
     public JMenuBar createMenuBar()
     {
         JMenuBar menuBar = new JMenuBar();
+        menuBar.add(createFileMenu());
         menuBar.add(createLookAndFeelMenu());
         menuBar.add(createTestMenu());
         return menuBar;
+    }
+
+    private JMenu createFileMenu()
+    {
+        JMenu menu = createMenu("Файл", KeyEvent.VK_F, "Управление приложением");
+        menu.add(createExitItem());
+        return menu;
     }
 
     private JMenu createLookAndFeelMenu()
@@ -58,6 +69,13 @@ public class MainMenuFactory
         menu.setMnemonic(mnemonic);
         menu.getAccessibleContext().setAccessibleDescription(description);
         return menu;
+    }
+
+    private JMenuItem createExitItem()
+    {
+        JMenuItem item = new JMenuItem("Выйти", KeyEvent.VK_X);
+        item.addActionListener((event) -> exitAction.run());
+        return item;
     }
 
     private JMenuItem createLookAndFeelItem(String title, int mnemonic, String lookAndFeelClassName)
