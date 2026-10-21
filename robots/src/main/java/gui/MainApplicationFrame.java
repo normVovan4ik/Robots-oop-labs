@@ -2,6 +2,7 @@ package gui;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.awt.event.WindowEvent;
 
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
@@ -36,7 +37,7 @@ public class MainApplicationFrame extends JFrame
         gameWindow.setSize(400,  400);
         addWindow(gameWindow);
 
-        setJMenuBar(new MainMenuFactory(this::switchLookAndFeel).createMenuBar());
+        setJMenuBar(new MainMenuFactory(this::switchLookAndFeel, this::requestClose).createMenuBar());
         closeGuard.guard(this, this::exitApplication);
     }
 
@@ -56,6 +57,15 @@ public class MainApplicationFrame extends JFrame
         closeGuard.guard(frame);
         desktopPane.add(frame);
         frame.setVisible(true);
+    }
+
+    /**
+     * То же самое, что нажатие на крестик главного окна:
+     * сработает подтверждение, а после него выход.
+     */
+    private void requestClose()
+    {
+        dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
     }
 
     private void exitApplication()
