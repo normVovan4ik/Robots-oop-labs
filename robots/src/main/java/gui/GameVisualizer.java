@@ -5,6 +5,10 @@ import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
@@ -24,6 +28,7 @@ public class GameVisualizer extends JPanel
     }
 
     private final RobotModel m_model = new RobotModel();
+    private final KeyboardControls m_controls = new KeyboardControls();
 
     public GameVisualizer()
     {
@@ -48,8 +53,32 @@ public class GameVisualizer extends JPanel
             @Override
             public void mouseClicked(MouseEvent e)
             {
+                requestFocusInWindow();
                 setTargetPosition(e.getPoint());
                 repaint();
+            }
+        });
+        setFocusable(true);
+        addKeyListener(new KeyAdapter()
+        {
+            @Override
+            public void keyPressed(KeyEvent e)
+            {
+                m_controls.keyPressed(e.getKeyCode());
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e)
+            {
+                m_controls.keyReleased(e.getKeyCode());
+            }
+        });
+        addFocusListener(new FocusAdapter()
+        {
+            @Override
+            public void focusLost(FocusEvent e)
+            {
+                m_controls.releaseAll();
             }
         });
         setDoubleBuffered(true);
@@ -68,7 +97,7 @@ public class GameVisualizer extends JPanel
     protected void onModelUpdateEvent()
     {
         m_model.setFieldSize(getWidth(), getHeight());
-        m_model.update(10);
+        m_controls.steer(m_model, 10);
     }
 
     private static int round(double value)
@@ -81,8 +110,11 @@ public class GameVisualizer extends JPanel
     {
         super.paint(g);
         Graphics2D g2d = (Graphics2D)g;
-        drawRobot(g2d, round(m_model.getPositionX()), round(m_model.getPositionY()), m_model.getDirection());
-        drawTarget(g2d, m_model.getTargetX(), m_model.getTargetY());
+        drawRobot(g2d, m_model, Color.MAGENTA);
+        if (!m_model.isManual())
+        {
+            drawTarget(g2d, m_model.getTargetX(), m_model.getTargetY());
+        }
     }
 
     private static void fillOval(Graphics g, int centerX, int centerY, int diam1, int diam2)
@@ -95,11 +127,13 @@ public class GameVisualizer extends JPanel
         g.drawOval(centerX - diam1 / 2, centerY - diam2 / 2, diam1, diam2);
     }
 
-    private void drawRobot(Graphics2D g, int x, int y, double direction)
+    private void drawRobot(Graphics2D g, RobotModel robot, Color color)
     {
-        AffineTransform t = AffineTransform.getRotateInstance(direction, x, y);
+        int x = round(robot.getPositionX());
+        int y = round(robot.getPositionY());
+        AffineTransform t = AffineTransform.getRotateInstance(robot.getDirection(), x, y);
         g.setTransform(t);
-        g.setColor(Color.MAGENTA);
+        g.setColor(color);
         fillOval(g, x, y, 30, 10);
         g.setColor(Color.BLACK);
         drawOval(g, x, y, 30, 10);

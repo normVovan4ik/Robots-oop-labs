@@ -1,7 +1,8 @@
 package gui;
 
 /**
- * Модель робота: положение, направление и движение к цели.
+ * Модель робота: положение, направление и движение.
+ * Робот либо едет к цели, которую задали мышью, либо управляется вручную.
  * Не зависит от Swing, поэтому её легко тестировать.
  */
 public class RobotModel
@@ -17,6 +18,9 @@ public class RobotModel
 
     private volatile int m_targetX = 150;
     private volatile int m_targetY = 100;
+
+    /** true, если робот сейчас управляется вручную, а не едет к цели. */
+    private volatile boolean m_manual = false;
 
     /** Размер игрового поля. Ноль означает, что размер ещё неизвестен. */
     private volatile int m_fieldWidth = 0;
@@ -47,10 +51,19 @@ public class RobotModel
         return m_targetY;
     }
 
+    public boolean isManual()
+    {
+        return m_manual;
+    }
+
+    /**
+     * Задаёт цель и возвращает робота к движению по цели.
+     */
     public void setTarget(int x, int y)
     {
         m_targetX = x;
         m_targetY = y;
+        m_manual = false;
     }
 
     /**
@@ -65,11 +78,15 @@ public class RobotModel
     }
 
     /**
-     * Один шаг движения к цели.
+     * Один шаг движения к цели. В ручном режиме ничего не делает.
      * @param duration длительность шага
      */
     public void update(double duration)
     {
+        if (m_manual)
+        {
+            return;
+        }
         double distance = distance(m_targetX, m_targetY, m_positionX, m_positionY);
         if (distance < 0.5)
         {
@@ -87,6 +104,21 @@ public class RobotModel
         }
 
         move(MAX_VELOCITY, angularVelocity, duration);
+    }
+
+    /**
+     * Один шаг ручного управления. После него робот остаётся в ручном режиме,
+     * пока не будет задана новая цель.
+     * @param turn     -1 повернуть влево, 0 не поворачивать, 1 повернуть вправо
+     * @param forward  ехать вперёд
+     * @param duration длительность шага
+     */
+    public void drive(int turn, boolean forward, double duration)
+    {
+        m_manual = true;
+        double velocity = forward ? MAX_VELOCITY : 0;
+        double angularVelocity = Integer.signum(turn) * MAX_ANGULAR_VELOCITY;
+        move(velocity, angularVelocity, duration);
     }
 
     private void move(double velocity, double angularVelocity, double duration)
