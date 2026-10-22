@@ -41,7 +41,7 @@ public class MainMenuFactory
     private JMenu createFileMenu()
     {
         JMenu menu = createMenu("Файл", KeyEvent.VK_F, "Управление приложением");
-        menu.add(createExitItem());
+        menu.add(createItem("Выйти", KeyEvent.VK_X, exitAction));
         return menu;
     }
 
@@ -59,7 +59,7 @@ public class MainMenuFactory
     private JMenu createTestMenu()
     {
         JMenu menu = createMenu("Тесты", KeyEvent.VK_T, "Тестовые команды");
-        menu.add(createLogMessageItem());
+        menu.add(createItem("Сообщение в лог", KeyEvent.VK_S, () -> Logger.debug("Новая строка")));
         return menu;
     }
 
@@ -71,24 +71,18 @@ public class MainMenuFactory
         return menu;
     }
 
-    private JMenuItem createExitItem()
-    {
-        JMenuItem item = new JMenuItem("Выйти", KeyEvent.VK_X);
-        item.addActionListener((event) -> exitAction.run());
-        return item;
-    }
-
     private JMenuItem createLookAndFeelItem(String title, int mnemonic, String lookAndFeelClassName)
     {
-        JMenuItem item = new JMenuItem(title, mnemonic);
-        item.addActionListener((event) -> lookAndFeelSwitcher.accept(lookAndFeelClassName));
-        return item;
+        return createItem(title, mnemonic, () -> lookAndFeelSwitcher.accept(lookAndFeelClassName));
     }
 
-    private JMenuItem createLogMessageItem()
+    /**
+     * Единственное место, где создаётся пункт меню с действием.
+     */
+    private JMenuItem createItem(String title, int mnemonic, Runnable action)
     {
-        JMenuItem item = new JMenuItem("Сообщение в лог", KeyEvent.VK_S);
-        item.addActionListener((event) -> Logger.debug("Новая строка"));
+        JMenuItem item = new JMenuItem(title, mnemonic);
+        item.addActionListener((event) -> action.run());
         return item;
     }
-}
+}   
