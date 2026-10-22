@@ -8,8 +8,8 @@ package gui;
 public class RobotModel
 {
     /** Скорости по умолчанию (у основного робота). */
-    public static final double MAX_VELOCITY = 0.1;
-    public static final double MAX_ANGULAR_VELOCITY = 0.001;
+    public static final double MAX_VELOCITY = 0.15;
+    public static final double MAX_ANGULAR_VELOCITY = 0.002;
     /** Половина длины робота: до границы поля центр робота не должен подходить ближе. */
     public static final double ROBOT_HALF_SIZE = 15;
 
@@ -112,7 +112,9 @@ public class RobotModel
             return;
         }
         double distance = distance(m_targetX, m_targetY, m_positionX, m_positionY);
-        if (distance < 0.5)
+        // Робот считается добравшимся, если он ближе, чем полшага до цели:
+        // с шагом больше одного пикселя расстояние 0,5 можно просто перепрыгнуть.
+        if (distance < m_maxVelocity * duration / 2)
         {
             return;
         }

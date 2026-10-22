@@ -11,8 +11,8 @@ import java.util.List;
 public class GameModel
 {
     /** Хищник медленнее робота, но поворачивает круче. */
-    public static final double PREDATOR_VELOCITY = 0.06;
-    public static final double PREDATOR_ANGULAR_VELOCITY = 0.004;
+    public static final double PREDATOR_VELOCITY = 0.09;
+    public static final double PREDATOR_ANGULAR_VELOCITY = 0.005;
 
     private static final int DEFAULT_FIELD_SIZE = 400;
     private static final int SPAWN_MARGIN = 50;
