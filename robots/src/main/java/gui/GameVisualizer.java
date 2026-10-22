@@ -27,7 +27,9 @@ public class GameVisualizer extends JPanel
         return timer;
     }
 
-    private final RobotModel m_model = new RobotModel();
+    private static final int PREDATOR_COUNT = 2;
+
+    private final GameModel m_model = new GameModel(PREDATOR_COUNT);
     private final KeyboardControls m_controls = new KeyboardControls();
 
     public GameVisualizer()
@@ -86,7 +88,7 @@ public class GameVisualizer extends JPanel
 
     protected void setTargetPosition(Point p)
     {
-        m_model.setTarget(p.x, p.y);
+        m_model.getRobot().setTarget(p.x, p.y);
     }
 
     protected void onRedrawEvent()
@@ -97,7 +99,7 @@ public class GameVisualizer extends JPanel
     protected void onModelUpdateEvent()
     {
         m_model.setFieldSize(getWidth(), getHeight());
-        m_controls.steer(m_model, 10);
+        m_model.update(10, m_controls);
     }
 
     private static int round(double value)
@@ -110,10 +112,15 @@ public class GameVisualizer extends JPanel
     {
         super.paint(g);
         Graphics2D g2d = (Graphics2D)g;
-        drawRobot(g2d, m_model, Color.MAGENTA);
-        if (!m_model.isManual())
+        for (RobotModel predator : m_model.getPredators())
         {
-            drawTarget(g2d, m_model.getTargetX(), m_model.getTargetY());
+            drawRobot(g2d, predator, Color.RED);
+        }
+        RobotModel robot = m_model.getRobot();
+        drawRobot(g2d, robot, Color.MAGENTA);
+        if (!robot.isManual())
+        {
+            drawTarget(g2d, robot.getTargetX(), robot.getTargetY());
         }
     }
 

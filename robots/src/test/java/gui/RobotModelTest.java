@@ -13,7 +13,7 @@ class RobotModelTest {
 
         robot.update(10);
 
-        assertEquals(101, robot.getPositionX(), 1e-9);
+        assertEquals(100 + RobotModel.MAX_VELOCITY * 10, robot.getPositionX(), 1e-9);
         assertEquals(100, robot.getPositionY(), 1e-9);
     }
 

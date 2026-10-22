@@ -7,13 +7,17 @@ package gui;
  */
 public class RobotModel
 {
-    public static final double MAX_VELOCITY = 0.1;
-    public static final double MAX_ANGULAR_VELOCITY = 0.001;
+    /** Скорости по умолчанию (у основного робота). */
+    public static final double MAX_VELOCITY = 0.15;
+    public static final double MAX_ANGULAR_VELOCITY = 0.002;
     /** Половина длины робота: до границы поля центр робота не должен подходить ближе. */
     public static final double ROBOT_HALF_SIZE = 15;
 
-    private volatile double m_positionX = 100;
-    private volatile double m_positionY = 100;
+    private final double m_maxVelocity;
+    private final double m_maxAngularVelocity;
+
+    private volatile double m_positionX;
+    private volatile double m_positionY;
     private volatile double m_direction = 0;
 
     private volatile int m_targetX = 150;
@@ -25,6 +29,26 @@ public class RobotModel
     /** Размер игрового поля. Ноль означает, что размер ещё неизвестен. */
     private volatile int m_fieldWidth = 0;
     private volatile int m_fieldHeight = 0;
+
+    /** Робот с обычными скоростями в точке (100, 100). */
+    public RobotModel()
+    {
+        this(100, 100, MAX_VELOCITY, MAX_ANGULAR_VELOCITY);
+    }
+
+    /**
+     * @param positionX          начальное положение по X
+     * @param positionY          начальное положение по Y
+     * @param maxVelocity        наибольшая скорость
+     * @param maxAngularVelocity наибольшая угловая скорость (чем больше, тем круче поворот)
+     */
+    public RobotModel(double positionX, double positionY, double maxVelocity, double maxAngularVelocity)
+    {
+        m_positionX = positionX;
+        m_positionY = positionY;
+        m_maxVelocity = maxVelocity;
+        m_maxAngularVelocity = maxAngularVelocity;
+    }
 
     public double getPositionX()
     {
@@ -88,22 +112,22 @@ public class RobotModel
             return;
         }
         double distance = distance(m_targetX, m_targetY, m_positionX, m_positionY);
-        if (distance < 0.5)
+        // Робот считается добравшимся, если он ближе, чем полшага до цели:
+        // с шагом больше одного пикселя расстояние 0,5 можно просто перепрыгнуть.
+        if (distance < m_maxVelocity * duration / 2)
         {
             return;
         }
         double angleToTarget = angleTo(m_positionX, m_positionY, m_targetX, m_targetY);
+        // Разница между нужным и текущим направлением, от 0 до 2π. Поворачиваем туда, где дуга короче.
+        double angleDiff = asNormalizedRadians(angleToTarget - m_direction);
         double angularVelocity = 0;
-        if (angleToTarget > m_direction)
+        if (angleDiff > 0)
         {
-            angularVelocity = MAX_ANGULAR_VELOCITY;
-        }
-        if (angleToTarget < m_direction)
-        {
-            angularVelocity = -MAX_ANGULAR_VELOCITY;
+            angularVelocity = angleDiff < Math.PI ? m_maxAngularVelocity : -m_maxAngularVelocity;
         }
 
-        move(MAX_VELOCITY, angularVelocity, duration);
+        move(m_maxVelocity, angularVelocity, duration);
     }
 
     /**
@@ -116,15 +140,15 @@ public class RobotModel
     public void drive(int turn, boolean forward, double duration)
     {
         m_manual = true;
-        double velocity = forward ? MAX_VELOCITY : 0;
-        double angularVelocity = Integer.signum(turn) * MAX_ANGULAR_VELOCITY;
+        double velocity = forward ? m_maxVelocity : 0;
+        double angularVelocity = Integer.signum(turn) * m_maxAngularVelocity;
         move(velocity, angularVelocity, duration);
     }
 
     private void move(double velocity, double angularVelocity, double duration)
     {
-        velocity = applyLimits(velocity, 0, MAX_VELOCITY);
-        angularVelocity = applyLimits(angularVelocity, -MAX_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY);
+        velocity = applyLimits(velocity, 0, m_maxVelocity);
+        angularVelocity = applyLimits(angularVelocity, -m_maxAngularVelocity, m_maxAngularVelocity);
         double newX = m_positionX + velocity / angularVelocity *
                 (Math.sin(m_direction + angularVelocity * duration) -
                         Math.sin(m_direction));

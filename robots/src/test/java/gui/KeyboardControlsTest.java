@@ -89,7 +89,7 @@ class KeyboardControlsTest {
         controls.steer(robot, 10);
 
         assertTrue(robot.isManual());
-        assertEquals(101, robot.getPositionX(), 1e-9);
+        assertEquals(100 + RobotModel.MAX_VELOCITY * 10, robot.getPositionX(), 1e-9);
         assertEquals(0, robot.getDirection(), 1e-12);
     }
 

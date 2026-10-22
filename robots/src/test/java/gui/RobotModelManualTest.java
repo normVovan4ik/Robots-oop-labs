@@ -14,7 +14,7 @@ class RobotModelManualTest {
 
         robot.drive(0, true, 10);
 
-        assertEquals(101, robot.getPositionX(), 1e-9);
+        assertEquals(100 + RobotModel.MAX_VELOCITY * 10, robot.getPositionX(), 1e-9);
         assertEquals(100, robot.getPositionY(), 1e-9);
         assertEquals(0, robot.getDirection(), 1e-12);
     }
@@ -74,6 +74,6 @@ class RobotModelManualTest {
         assertFalse(robot.isManual());
         robot.update(10);
 
-        assertEquals(101, robot.getPositionX(), 1e-9);
+        assertEquals(100 + RobotModel.MAX_VELOCITY * 10, robot.getPositionX(), 1e-9);
     }
 }
