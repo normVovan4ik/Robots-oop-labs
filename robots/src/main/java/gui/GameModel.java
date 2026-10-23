@@ -1,5 +1,6 @@
 package gui;
 
+import java.awt.Component;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +14,11 @@ public class GameModel
     /** Хищник медленнее робота, но поворачивает круче. */
     public static final double PREDATOR_VELOCITY = 0.09;
     public static final double PREDATOR_ANGULAR_VELOCITY = 0.005;
+    /** Хищник поймал робота, если расстояние между центрами меньше этого значения. */
+    public static final double CATCH_DISTANCE = 25;
+
+    static final String RESTART_QUESTION = "Вас поймали. Начать заново?";
+    static final String RESTART_TITLE = "Игра окончена";
 
     private static final int DEFAULT_FIELD_SIZE = 400;
     private static final int SPAWN_MARGIN = 50;
@@ -20,6 +26,7 @@ public class GameModel
     private final int m_predatorCount;
     private volatile RobotModel m_robot;
     private volatile List<RobotModel> m_predators;
+    private volatile boolean m_gameOver = false;
     private int m_fieldWidth = 0;
     private int m_fieldHeight = 0;
 
@@ -39,6 +46,11 @@ public class GameModel
         return m_predators;
     }
 
+    public boolean isGameOver()
+    {
+        return m_gameOver;
+    }
+
     public synchronized void setFieldSize(int width, int height)
     {
         m_fieldWidth = width;
@@ -49,9 +61,14 @@ public class GameModel
 
     /**
      * Один шаг игры: робот едет (вручную или к цели), а каждый хищник едет к роботу.
+     * Когда хищник догнал робота, игра заканчивается и модель перестаёт двигаться.
      */
     public synchronized void update(double duration, KeyboardControls controls)
     {
+        if (m_gameOver)
+        {
+            return;
+        }
         RobotModel robot = m_robot;
         controls.steer(robot, duration);
         for (RobotModel predator : m_predators)
@@ -59,6 +76,49 @@ public class GameModel
             predator.setTarget(round(robot.getPositionX()), round(robot.getPositionY()));
             predator.update(duration);
         }
+        if (isRobotCaught())
+        {
+            m_gameOver = true;
+        }
+    }
+
+    /**
+     * Если игра окончена, спрашивает, начать ли заново, и при согласии начинает новую игру.
+     * @return true, если игра началась заново
+     */
+    public boolean askRestart(Confirmer confirmer, Component parent)
+    {
+        if (!m_gameOver)
+        {
+            return false;
+        }
+        if (!confirmer.confirm(parent, RESTART_QUESTION, RESTART_TITLE))
+        {
+            return false;
+        }
+        restart();
+        return true;
+    }
+
+    public synchronized void restart()
+    {
+        start();
+        m_gameOver = false;
+    }
+
+    private boolean isRobotCaught()
+    {
+        RobotModel robot = m_robot;
+        for (RobotModel predator : m_predators)
+        {
+            double distance = Math.hypot(predator.getPositionX() - robot.getPositionX(),
+                    predator.getPositionY() - robot.getPositionY());
+            if (distance < CATCH_DISTANCE)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private synchronized void start()
