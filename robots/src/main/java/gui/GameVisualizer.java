@@ -31,9 +31,16 @@ public class GameVisualizer extends JPanel
 
     private final GameModel m_model = new GameModel(PREDATOR_COUNT);
     private final KeyboardControls m_controls = new KeyboardControls();
+    private final Confirmer m_confirmer;
 
-    public GameVisualizer()
+    /** Вопрос «Начать заново?» сейчас на экране. */
+    private volatile boolean m_askingRestart = false;
+    /** Пользователь отказался начинать заново: игра стоит, пока он снова не нажмёт на поле. */
+    private volatile boolean m_restartDeclined = false;
+
+    public GameVisualizer(Confirmer confirmer)
     {
+        m_confirmer = confirmer;
         m_timer.schedule(new TimerTask()
         {
             @Override
@@ -56,6 +63,7 @@ public class GameVisualizer extends JPanel
             public void mouseClicked(MouseEvent e)
             {
                 requestFocusInWindow();
+                m_restartDeclined = false;
                 setTargetPosition(e.getPoint());
                 repaint();
             }
@@ -100,6 +108,18 @@ public class GameVisualizer extends JPanel
     {
         m_model.setFieldSize(getWidth(), getHeight());
         m_model.update(10, m_controls);
+        if (m_model.isGameOver() && !m_askingRestart && !m_restartDeclined)
+        {
+            m_askingRestart = true;
+            EventQueue.invokeLater(this::askRestart);
+        }
+    }
+
+    /** Вопрос показывается в потоке событий Swing. */
+    private void askRestart()
+    {
+        m_restartDeclined = !m_model.askRestart(m_confirmer, this);
+        m_askingRestart = false;
     }
 
     private static int round(double value)
@@ -121,6 +141,10 @@ public class GameVisualizer extends JPanel
         if (!robot.isManual())
         {
             drawTarget(g2d, robot.getTargetX(), robot.getTargetY());
+        }
+        if (m_model.isGameOver())
+        {
+            drawGameOver(g2d);
         }
     }
 
@@ -148,6 +172,13 @@ public class GameVisualizer extends JPanel
         fillOval(g, x + 10, y, 5, 5);
         g.setColor(Color.BLACK);
         drawOval(g, x + 10, y, 5, 5);
+    }
+
+    private void drawGameOver(Graphics2D g)
+    {
+        g.setTransform(new AffineTransform());
+        g.setColor(Color.BLACK);
+        g.drawString("Игра окончена. Нажмите на поле, чтобы начать заново", 10, 20);
     }
 
     private void drawTarget(Graphics2D g, int x, int y)
