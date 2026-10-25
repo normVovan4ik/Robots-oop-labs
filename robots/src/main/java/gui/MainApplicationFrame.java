@@ -3,6 +3,9 @@ package gui;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
@@ -17,10 +20,12 @@ public class MainApplicationFrame extends JFrame
 {
     private final JDesktopPane desktopPane = new JDesktopPane();
     private final CloseGuard closeGuard = new CloseGuard(new SwingConfirmer());
+    /** Внутренние окна приложения по именам: из них собирается профиль. */
+    private final Map<String, JInternalFrame> windows = new LinkedHashMap<>();
+    private final ProfileManager profileManager =
+            new ProfileManager(new ProfileStorage(ProfileStorage.defaultFile()));
 
     public MainApplicationFrame() {
-        //Make the big window be indented 50 pixels from each edge
-        //of the screen.
         int inset = 50;
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         setBounds(inset, inset,
@@ -29,13 +34,12 @@ public class MainApplicationFrame extends JFrame
 
         setContentPane(desktopPane);
 
-
         LogWindow logWindow = createLogWindow();
-        addWindow(logWindow);
+        addWindow("log", logWindow);
 
         GameWindow gameWindow = new GameWindow();
         gameWindow.setSize(400,  400);
-        addWindow(gameWindow);
+        addWindow("game", gameWindow);
 
         setJMenuBar(new MainMenuFactory(this::switchLookAndFeel, this::requestClose).createMenuBar());
         closeGuard.guard(this, this::exitApplication);
@@ -52,17 +56,14 @@ public class MainApplicationFrame extends JFrame
         return logWindow;
     }
 
-    protected void addWindow(JInternalFrame frame)
+    protected void addWindow(String name, JInternalFrame frame)
     {
+        windows.put(name, frame);
         closeGuard.guard(frame);
         desktopPane.add(frame);
         frame.setVisible(true);
     }
 
-    /**
-     * То же самое, что нажатие на крестик главного окна:
-     * сработает подтверждение, а после него выход.
-     */
     private void requestClose()
     {
         dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
@@ -70,8 +71,21 @@ public class MainApplicationFrame extends JFrame
 
     private void exitApplication()
     {
+        saveProfile();
         dispose();
         System.exit(0);
+    }
+
+    private void saveProfile()
+    {
+        try
+        {
+            profileManager.save(windows);
+        }
+        catch (IOException e)
+        {
+            Logger.error("Не удалось сохранить профиль: " + e.getMessage());
+        }
     }
 
     private void switchLookAndFeel(String className)
