@@ -85,4 +85,4 @@ public class MainMenuFactory
         item.addActionListener((event) -> action.run());
         return item;
     }
-}   
+}

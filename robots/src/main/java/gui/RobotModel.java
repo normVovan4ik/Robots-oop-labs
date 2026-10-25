@@ -81,6 +81,22 @@ public class RobotModel
     }
 
     /**
+     * @return расстояние между центрами этого и другого робота
+     */
+    public double distanceTo(RobotModel other)
+    {
+        return distance(m_positionX, m_positionY, other.m_positionX, other.m_positionY);
+    }
+
+    /**
+     * Делает целью текущее положение другого робота: этот робот будет за ним гнаться.
+     */
+    public void chase(RobotModel prey)
+    {
+        setTarget((int) Math.round(prey.m_positionX), (int) Math.round(prey.m_positionY));
+    }
+
+    /**
      * Задаёт цель и возвращает робота к движению по цели.
      */
     public void setTarget(int x, int y)
