@@ -20,7 +20,7 @@ class GameModelTest {
         GameModel model = new GameModel(2);
 
         for (RobotModel predator : model.getPredators()) {
-            assertTrue(distance(model.getRobot(), predator) > 100);
+            assertTrue(predator.distanceTo(model.getRobot()) > 100);
         }
     }
 
@@ -28,13 +28,23 @@ class GameModelTest {
     void predatorGetsCloserToRobot() {
         GameModel model = new GameModel(1);
         RobotModel predator = model.getPredators().get(0);
-        double before = distance(model.getRobot(), predator);
+        double before = predator.distanceTo(model.getRobot());
 
         for (int i = 0; i < 200; i++) {
             model.update(10, controls);
         }
 
-        assertTrue(distance(model.getRobot(), predator) < before);
+        assertTrue(predator.distanceTo(model.getRobot()) < before);
+    }
+
+    @Test
+    void robotTargetIsSetThroughTheModel() {
+        GameModel model = new GameModel(0);
+
+        model.setRobotTarget(250, 180);
+
+        assertEquals(250, model.getRobot().getTargetX());
+        assertEquals(180, model.getRobot().getTargetY());
     }
 
     @Test
@@ -55,9 +65,5 @@ class GameModelTest {
         assertTrue(model.getPositionX() >= min && model.getPositionX() <= max
                         && model.getPositionY() >= min && model.getPositionY() <= max,
                 "left the field: " + model.getPositionX() + ", " + model.getPositionY());
-    }
-
-    private static double distance(RobotModel a, RobotModel b) {
-        return Math.hypot(a.getPositionX() - b.getPositionX(), a.getPositionY() - b.getPositionY());
     }
 }

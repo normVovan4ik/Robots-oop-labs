@@ -28,6 +28,10 @@ public class GameVisualizer extends JPanel
     }
 
     private static final int PREDATOR_COUNT = 2;
+    /** Как часто обновляется модель, в миллисекундах. Это же длительность одного шага модели. */
+    private static final int MODEL_UPDATE_PERIOD = 10;
+    /** Как часто перерисовывается поле, в миллисекундах. */
+    private static final int REDRAW_PERIOD = 50;
 
     private final GameModel m_model = new GameModel(PREDATOR_COUNT);
     private final KeyboardControls m_controls = new KeyboardControls();
@@ -48,7 +52,7 @@ public class GameVisualizer extends JPanel
             {
                 onRedrawEvent();
             }
-        }, 0, 50);
+        }, 0, REDRAW_PERIOD);
         m_timer.schedule(new TimerTask()
         {
             @Override
@@ -56,7 +60,7 @@ public class GameVisualizer extends JPanel
             {
                 onModelUpdateEvent();
             }
-        }, 0, 10);
+        }, 0, MODEL_UPDATE_PERIOD);
         addMouseListener(new MouseAdapter()
         {
             @Override
@@ -96,7 +100,7 @@ public class GameVisualizer extends JPanel
 
     protected void setTargetPosition(Point p)
     {
-        m_model.getRobot().setTarget(p.x, p.y);
+        m_model.setRobotTarget(p.x, p.y);
     }
 
     protected void onRedrawEvent()
@@ -107,7 +111,7 @@ public class GameVisualizer extends JPanel
     protected void onModelUpdateEvent()
     {
         m_model.setFieldSize(getWidth(), getHeight());
-        m_model.update(10, m_controls);
+        m_model.update(MODEL_UPDATE_PERIOD, m_controls);
         if (m_model.isGameOver() && !m_askingRestart && !m_restartDeclined)
         {
             m_askingRestart = true;

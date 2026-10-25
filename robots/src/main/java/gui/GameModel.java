@@ -51,6 +51,14 @@ public class GameModel
         return m_gameOver;
     }
 
+    /**
+     * Отправляет робота к точке: он едет к ней сам, а не по клавишам.
+     */
+    public void setRobotTarget(int x, int y)
+    {
+        m_robot.setTarget(x, y);
+    }
+
     public synchronized void setFieldSize(int width, int height)
     {
         m_fieldWidth = width;
@@ -73,7 +81,7 @@ public class GameModel
         controls.steer(robot, duration);
         for (RobotModel predator : m_predators)
         {
-            predator.setTarget(round(robot.getPositionX()), round(robot.getPositionY()));
+            predator.chase(robot);
             predator.update(duration);
         }
         if (isRobotCaught())
@@ -111,8 +119,7 @@ public class GameModel
         RobotModel robot = m_robot;
         for (RobotModel predator : m_predators)
         {
-            double distance = Math.hypot(predator.getPositionX() - robot.getPositionX(),
-                    predator.getPositionY() - robot.getPositionY());
+            double distance = predator.distanceTo(robot);
             if (distance < CATCH_DISTANCE)
             {
                 return true;
@@ -150,10 +157,5 @@ public class GameModel
     private void applyFieldSize(RobotModel model)
     {
         model.setFieldSize(m_fieldWidth, m_fieldHeight);
-    }
-
-    private static int round(double value)
-    {
-        return (int) Math.round(value);
     }
 }
