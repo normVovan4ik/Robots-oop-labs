@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.Rectangle;
+
 import javax.swing.JDesktopPane;
 import javax.swing.JInternalFrame;
 
@@ -16,8 +18,7 @@ class WindowStateTest {
 
     @Test
     void captureReadsPositionAndSize() {
-        JInternalFrame frame = newFrame();
-        frame.setBounds(10, 20, 300, 200);
+        JInternalFrame frame = InternalFrameFactory.newFrame(desktop, 10, 20, 300, 200);
 
         WindowState state = WindowState.capture(frame);
 
@@ -26,8 +27,7 @@ class WindowStateTest {
 
     @Test
     void captureOfMaximizedWindowKeepsNormalBounds() throws Exception {
-        JInternalFrame frame = newFrame();
-        frame.setBounds(10, 20, 300, 200);
+        JInternalFrame frame = InternalFrameFactory.newFrame(desktop, 10, 20, 300, 200);
         frame.setMaximum(true);
 
         WindowState state = WindowState.capture(frame);
@@ -41,14 +41,63 @@ class WindowStateTest {
 
     @Test
     void captureReadsIconifiedAndClosedState() throws Exception {
-        JInternalFrame iconified = newFrame();
+        JInternalFrame iconified = InternalFrameFactory.newFrame(desktop, 0, 0, 100, 100);
         iconified.setIcon(true);
-        JInternalFrame closed = newFrame();
+        JInternalFrame closed = InternalFrameFactory.newFrame(desktop, 0, 0, 100, 100);
         closed.setClosed(true);
 
         assertTrue(WindowState.capture(iconified).icon());
         assertFalse(WindowState.capture(iconified).closed());
         assertTrue(WindowState.capture(closed).closed());
+    }
+
+    @Test
+    void applyMovesAndResizesWindow() {
+        JInternalFrame frame = InternalFrameFactory.newFrame(desktop, 0, 0, 100, 100);
+
+        new WindowState(10, 20, 300, 200, false, false, false).applyTo(frame);
+
+        assertEquals(new Rectangle(10, 20, 300, 200), frame.getBounds());
+    }
+
+    @Test
+    void applyMaximizesWindowAndRemembersNormalBounds() {
+        JInternalFrame frame = InternalFrameFactory.newFrame(desktop, 0, 0, 100, 100);
+
+        new WindowState(10, 20, 300, 200, true, false, false).applyTo(frame);
+
+        assertTrue(frame.isMaximum());
+        assertEquals(new Rectangle(10, 20, 300, 200), frame.getNormalBounds());
+    }
+
+    @Test
+    void applyIconifiesWindow() {
+        JInternalFrame frame = InternalFrameFactory.newFrame(desktop, 0, 0, 100, 100);
+
+        new WindowState(10, 20, 300, 200, false, true, false).applyTo(frame);
+
+        assertTrue(frame.isIcon());
+    }
+
+    @Test
+    void applyClosesWindow() {
+        JInternalFrame frame = InternalFrameFactory.newFrame(desktop, 0, 0, 100, 100);
+
+        new WindowState(10, 20, 300, 200, false, false, true).applyTo(frame);
+
+        assertTrue(frame.isClosed());
+    }
+
+    @Test
+    void capturedStateAppliedToAnotherWindowGivesSameState() throws Exception {
+        JInternalFrame source = InternalFrameFactory.newFrame(desktop, 15, 25, 320, 210);
+        source.setIcon(true);
+        WindowState state = WindowState.capture(source);
+        JInternalFrame target = InternalFrameFactory.newFrame(desktop, 0, 0, 100, 100);
+
+        state.applyTo(target);
+
+        assertEquals(state, WindowState.capture(target));
     }
 
     @Test
@@ -72,12 +121,5 @@ class WindowStateTest {
     @Test
     void notABooleanIsRejected() {
         assertThrows(IllegalArgumentException.class, () -> WindowState.fromLine("1,2,3,4,yes,false,false"));
-    }
-
-    private JInternalFrame newFrame() {
-        desktop.setSize(800, 600);
-        JInternalFrame frame = new JInternalFrame("Окно", true, true, true, true);
-        desktop.add(frame);
-        return frame;
     }
 }

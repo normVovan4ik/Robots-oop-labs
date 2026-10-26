@@ -1,6 +1,7 @@
 package gui;
 
 import java.awt.Rectangle;
+import java.beans.PropertyVetoException;
 
 import javax.swing.JInternalFrame;
 
@@ -21,6 +22,29 @@ public record WindowState(int x, int y, int width, int height,
         Rectangle bounds = frame.isMaximum() ? frame.getNormalBounds() : frame.getBounds();
         return new WindowState(bounds.x, bounds.y, bounds.width, bounds.height,
                 frame.isMaximum(), frame.isIcon(), frame.isClosed());
+    }
+
+    /**
+     * Применяет состояние к окну: закрывает его или ставит нужные положение, размер,
+     * развёрнутость и свёрнутость.
+     */
+    public void applyTo(JInternalFrame frame)
+    {
+        try
+        {
+            if (closed)
+            {
+                frame.setClosed(true);
+                return;
+            }
+            frame.setBounds(x, y, width, height);
+            frame.setMaximum(maximum);
+            frame.setIcon(icon);
+        }
+        catch (PropertyVetoException e)
+        {
+            // Окно не согласилось менять состояние: оставляем как есть
+        }
     }
 
     /**
