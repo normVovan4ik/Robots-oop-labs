@@ -1,8 +1,10 @@
 package gui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.Rectangle;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -23,10 +25,10 @@ class ProfileManagerTest {
 
     @Test
     void saveWritesStateOfEveryWindow() throws IOException {
-        ProfileStorage storage = new ProfileStorage(dir.resolve("profile.properties"));
+        ProfileStorage storage = storage();
         Map<String, JInternalFrame> windows = new LinkedHashMap<>();
-        windows.put("log", newFrame(10, 20, 300, 800));
-        windows.put("game", newFrame(320, 40, 400, 400));
+        windows.put("log", InternalFrameFactory.newFrame(desktop, 10, 20, 300, 800));
+        windows.put("game", InternalFrameFactory.newFrame(desktop, 320, 40, 400, 400));
 
         new ProfileManager(storage).save(windows);
 
@@ -37,8 +39,8 @@ class ProfileManagerTest {
 
     @Test
     void closedWindowIsSavedAsClosed() throws Exception {
-        ProfileStorage storage = new ProfileStorage(dir.resolve("profile.properties"));
-        JInternalFrame frame = newFrame(10, 20, 300, 800);
+        ProfileStorage storage = storage();
+        JInternalFrame frame = InternalFrameFactory.newFrame(desktop, 10, 20, 300, 800);
         frame.setClosed(true);
 
         new ProfileManager(storage).save(Map.of("log", frame));
@@ -46,11 +48,66 @@ class ProfileManagerTest {
         assertTrue(storage.load().orElseThrow().get("log").closed());
     }
 
-    private JInternalFrame newFrame(int x, int y, int width, int height) {
-        desktop.setSize(800, 600);
-        JInternalFrame frame = new JInternalFrame("Окно", true, true, true, true);
-        frame.setBounds(x, y, width, height);
-        desktop.add(frame);
-        return frame;
+    @Test
+    void restoreAppliesSavedStateToWindows() throws IOException {
+        ProfileManager manager = new ProfileManager(storage());
+        manager.save(Map.of("log", InternalFrameFactory.newFrame(desktop, 10, 20, 300, 800)));
+        JInternalFrame fresh = InternalFrameFactory.newFrame(desktop, 0, 0, 100, 100);
+
+        boolean restored = manager.restore(Map.of("log", fresh));
+
+        assertTrue(restored);
+        assertEquals(new Rectangle(10, 20, 300, 800), fresh.getBounds());
+    }
+
+    @Test
+    void restoreReturnsFalseWhenThereIsNoProfile() {
+        JInternalFrame frame = InternalFrameFactory.newFrame(desktop, 5, 6, 100, 100);
+
+        boolean restored = new ProfileManager(storage()).restore(Map.of("log", frame));
+
+        assertFalse(restored);
+        assertEquals(new Rectangle(5, 6, 100, 100), frame.getBounds());
+    }
+
+    @Test
+    void restoreLeavesWindowsThatAreNotInProfileAsTheyAre() throws IOException {
+        ProfileManager manager = new ProfileManager(storage());
+        manager.save(Map.of("log", InternalFrameFactory.newFrame(desktop, 10, 20, 300, 800)));
+        JInternalFrame log = InternalFrameFactory.newFrame(desktop, 0, 0, 100, 100);
+        JInternalFrame other = InternalFrameFactory.newFrame(desktop, 7, 8, 120, 130);
+
+        manager.restore(Map.of("log", log, "other", other));
+
+        assertEquals(new Rectangle(7, 8, 120, 130), other.getBounds());
+    }
+
+    @Test
+    void restoreSkipsProfileEntriesForUnknownWindows() throws IOException {
+        ProfileManager manager = new ProfileManager(storage());
+        manager.save(Map.of("ghost", InternalFrameFactory.newFrame(desktop, 10, 20, 300, 800)));
+        JInternalFrame log = InternalFrameFactory.newFrame(desktop, 5, 6, 100, 100);
+
+        boolean restored = manager.restore(Map.of("log", log));
+
+        assertTrue(restored);
+        assertEquals(new Rectangle(5, 6, 100, 100), log.getBounds());
+    }
+
+    @Test
+    void restoreClosesWindowThatWasClosedAtExit() throws Exception {
+        ProfileManager manager = new ProfileManager(storage());
+        JInternalFrame closedBefore = InternalFrameFactory.newFrame(desktop, 10, 20, 300, 800);
+        closedBefore.setClosed(true);
+        manager.save(Map.of("log", closedBefore));
+        JInternalFrame fresh = InternalFrameFactory.newFrame(desktop, 0, 0, 100, 100);
+
+        manager.restore(Map.of("log", fresh));
+
+        assertTrue(fresh.isClosed());
+    }
+
+    private ProfileStorage storage() {
+        return new ProfileStorage(dir.resolve("profile.properties"));
     }
 }
