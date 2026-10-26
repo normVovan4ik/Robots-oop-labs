@@ -64,6 +64,14 @@ public class MainApplicationFrame extends JFrame
         frame.setVisible(true);
     }
 
+    /**
+     * Возвращает окна в то состояние, в котором они были при прошлом выходе из приложения.
+     */
+    public void restoreProfile()
+    {
+        profileManager.restore(windows);
+    }
+
     private void requestClose()
     {
         dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
