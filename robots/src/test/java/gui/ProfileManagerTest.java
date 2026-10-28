@@ -6,8 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Rectangle;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.JDesktopPane;
@@ -20,6 +23,9 @@ class ProfileManagerTest {
 
     @TempDir
     Path dir;
+
+    private static final Confirmer YES = (parent, message, title) -> true;
+    private static final Confirmer NO = (parent, message, title) -> false;
 
     private final JDesktopPane desktop = new JDesktopPane();
 
@@ -105,6 +111,71 @@ class ProfileManagerTest {
         manager.restore(Map.of("log", fresh));
 
         assertTrue(fresh.isClosed());
+    }
+
+    @Test
+    void noQuestionIsAskedWhenThereIsNoProfile() {
+        List<String> questions = new ArrayList<>();
+        JInternalFrame frame = InternalFrameFactory.newFrame(desktop, 5, 6, 100, 100);
+
+        boolean restored = new ProfileManager(storage()).restoreIfConfirmed(
+                Map.of("log", frame), (parent, message, title) -> questions.add(message), null);
+
+        assertFalse(restored);
+        assertTrue(questions.isEmpty());
+    }
+
+    @Test
+    void noQuestionIsAskedWhenProfileFileIsBroken() throws IOException {
+        Files.writeString(dir.resolve("profile.properties"), "log=это не профиль\n");
+        List<String> questions = new ArrayList<>();
+        JInternalFrame frame = InternalFrameFactory.newFrame(desktop, 5, 6, 100, 100);
+
+        boolean restored = new ProfileManager(storage()).restoreIfConfirmed(
+                Map.of("log", frame), (parent, message, title) -> questions.add(message), null);
+
+        assertFalse(restored);
+        assertTrue(questions.isEmpty());
+    }
+
+    @Test
+    void questionWarnsAboutSavedProfile() throws IOException {
+        ProfileManager manager = new ProfileManager(storage());
+        manager.save(Map.of("log", InternalFrameFactory.newFrame(desktop, 10, 20, 300, 800)));
+        List<String> shown = new ArrayList<>();
+
+        manager.restoreIfConfirmed(Map.of("log", InternalFrameFactory.newFrame(desktop, 0, 0, 100, 100)),
+                (parent, message, title) -> {
+                    shown.add(message);
+                    shown.add(title);
+                    return false;
+                }, null);
+
+        assertEquals(List.of("Найден сохранённый профиль окон. Восстановить его?", "Профиль"), shown);
+    }
+
+    @Test
+    void confirmedQuestionRestoresWindows() throws IOException {
+        ProfileManager manager = new ProfileManager(storage());
+        manager.save(Map.of("log", InternalFrameFactory.newFrame(desktop, 10, 20, 300, 800)));
+        JInternalFrame fresh = InternalFrameFactory.newFrame(desktop, 0, 0, 100, 100);
+
+        boolean restored = manager.restoreIfConfirmed(Map.of("log", fresh), YES, null);
+
+        assertTrue(restored);
+        assertEquals(new Rectangle(10, 20, 300, 800), fresh.getBounds());
+    }
+
+    @Test
+    void declinedQuestionLeavesWindowsAsTheyAre() throws IOException {
+        ProfileManager manager = new ProfileManager(storage());
+        manager.save(Map.of("log", InternalFrameFactory.newFrame(desktop, 10, 20, 300, 800)));
+        JInternalFrame fresh = InternalFrameFactory.newFrame(desktop, 0, 0, 100, 100);
+
+        boolean restored = manager.restoreIfConfirmed(Map.of("log", fresh), NO, null);
+
+        assertFalse(restored);
+        assertEquals(new Rectangle(0, 0, 100, 100), fresh.getBounds());
     }
 
     private ProfileStorage storage() {
