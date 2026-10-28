@@ -19,7 +19,8 @@ import log.Logger;
 public class MainApplicationFrame extends JFrame
 {
     private final JDesktopPane desktopPane = new JDesktopPane();
-    private final CloseGuard closeGuard = new CloseGuard(new SwingConfirmer());
+    private final Confirmer confirmer = new SwingConfirmer();
+    private final CloseGuard closeGuard = new CloseGuard(confirmer);
     /** Внутренние окна приложения по именам: из них собирается профиль. */
     private final Map<String, JInternalFrame> windows = new LinkedHashMap<>();
     private final ProfileManager profileManager =
@@ -65,11 +66,11 @@ public class MainApplicationFrame extends JFrame
     }
 
     /**
-     * Возвращает окна в то состояние, в котором они были при прошлом выходе из приложения.
+     * Если есть профиль, сохранённый при прошлом выходе, предлагает вернуть окна в то состояние.
      */
     public void restoreProfile()
     {
-        profileManager.restore(windows);
+        profileManager.restoreIfConfirmed(windows, confirmer, this);
     }
 
     private void requestClose()
