@@ -10,8 +10,9 @@ public class RobotModel
     /** Скорости по умолчанию (у основного робота). */
     public static final double MAX_VELOCITY = 0.15;
     public static final double MAX_ANGULAR_VELOCITY = 0.002;
-    /** Половина длины робота: до границы поля центр робота не должен подходить ближе. */
+    /** Робот нарисован овалом 30 на 10: половина длины и половина ширины. */
     public static final double ROBOT_HALF_SIZE = 15;
+    public static final double ROBOT_HALF_WIDTH = 5;
 
     private final double m_maxVelocity;
     private final double m_maxAngularVelocity;
@@ -81,6 +82,22 @@ public class RobotModel
     }
 
     /**
+     * @return насколько тело робота выступает от центра по горизонтали (зависит от направления)
+     */
+    public double getHalfExtentX()
+    {
+        return halfExtent(Math.cos(m_direction), Math.sin(m_direction));
+    }
+
+    /**
+     * @return насколько тело робота выступает от центра по вертикали (зависит от направления)
+     */
+    public double getHalfExtentY()
+    {
+        return halfExtent(Math.sin(m_direction), Math.cos(m_direction));
+    }
+
+    /**
      * @return расстояние между центрами этого и другого робота
      */
     public double distanceTo(RobotModel other)
@@ -127,14 +144,17 @@ public class RobotModel
         {
             return;
         }
-        double distance = distance(m_targetX, m_targetY, m_positionX, m_positionY);
+        // Цель у самой стенки робот может достать только краем тела, поэтому едем к ближайшей достижимой точке
+        double targetX = insideFieldX(m_targetX);
+        double targetY = insideFieldY(m_targetY);
+        double distance = distance(targetX, targetY, m_positionX, m_positionY);
         // Робот считается добравшимся, если он ближе, чем полшага до цели:
         // с шагом больше одного пикселя расстояние 0,5 можно просто перепрыгнуть.
         if (distance < m_maxVelocity * duration / 2)
         {
             return;
         }
-        double angleToTarget = angleTo(m_positionX, m_positionY, m_targetX, m_targetY);
+        double angleToTarget = angleTo(m_positionX, m_positionY, targetX, targetY);
         // Разница между нужным и текущим направлением, от 0 до 2π. Поворачиваем туда, где дуга короче.
         double angleDiff = asNormalizedRadians(angleToTarget - m_direction);
         double angularVelocity = 0;
@@ -187,20 +207,38 @@ public class RobotModel
 
     private void keepInsideField()
     {
-        if (m_fieldWidth > 0)
-        {
-            m_positionX = limitToField(m_positionX, m_fieldWidth);
-        }
-        if (m_fieldHeight > 0)
-        {
-            m_positionY = limitToField(m_positionY, m_fieldHeight);
-        }
+        m_positionX = insideFieldX(m_positionX);
+        m_positionY = insideFieldY(m_positionY);
     }
 
-    private static double limitToField(double value, int fieldSize)
+    /** Ближайшая к x точка, в которой тело робота ещё не выходит за левую и правую границы поля. */
+    private double insideFieldX(double x)
     {
-        double margin = Math.min(ROBOT_HALF_SIZE, fieldSize / 2.0);
+        return m_fieldWidth > 0 ? limitToField(x, m_fieldWidth, getHalfExtentX()) : x;
+    }
+
+    /** Ближайшая к y точка, в которой тело робота ещё не выходит за верхнюю и нижнюю границы поля. */
+    private double insideFieldY(double y)
+    {
+        return m_fieldHeight > 0 ? limitToField(y, m_fieldHeight, getHalfExtentY()) : y;
+    }
+
+    private static double limitToField(double value, int fieldSize, double halfExtent)
+    {
+        double margin = Math.min(halfExtent, fieldSize / 2.0);
         return applyLimits(value, margin, fieldSize - margin);
+    }
+
+    /**
+     * Полуось овала (ROBOT_HALF_SIZE вдоль робота, ROBOT_HALF_WIDTH поперёк), спроецированная на ось.
+     * @param along  косинус или синус угла между этой осью и направлением робота
+     * @param across тот же угол для перпендикулярной оси
+     */
+    private static double halfExtent(double along, double across)
+    {
+        double lengthPart = ROBOT_HALF_SIZE * along;
+        double widthPart = ROBOT_HALF_WIDTH * across;
+        return Math.sqrt(lengthPart * lengthPart + widthPart * widthPart);
     }
 
     private static double distance(double x1, double y1, double x2, double y2)

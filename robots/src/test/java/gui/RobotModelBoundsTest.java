@@ -8,19 +8,16 @@ import org.junit.jupiter.api.Test;
 class RobotModelBoundsTest {
 
     private static final int FIELD_SIZE = 200;
-    private static final double MIN = RobotModel.ROBOT_HALF_SIZE;
-    private static final double MAX = FIELD_SIZE - RobotModel.ROBOT_HALF_SIZE;
 
     @Test
     void robotCirclingAroundTargetNeverLeavesField() {
         RobotModel robot = new RobotModel();
         robot.setFieldSize(FIELD_SIZE, FIELD_SIZE);
-        // цель у самого края: робот поворачивает по дуге и раньше «выносило» за границу
         robot.setTarget(100, 190);
 
         for (int i = 0; i < 200_000; i++) {
             robot.update(10);
-            assertInsideField(robot);
+            assertBodyInsideField(robot);
         }
     }
 
@@ -28,33 +25,34 @@ class RobotModelBoundsTest {
     void robotHeadingStraightAtWallStopsAtBorder() {
         RobotModel robot = new RobotModel();
         robot.setFieldSize(FIELD_SIZE, FIELD_SIZE);
-        robot.setTarget(1000, 100); // цель за правой границей
+        robot.setTarget(1000, 100);
 
         for (int i = 0; i < 1000; i++) {
             robot.update(10);
         }
 
-        assertEquals(MAX, robot.getPositionX(), 1e-9);
+        assertEquals(FIELD_SIZE - RobotModel.ROBOT_HALF_SIZE, robot.getPositionX(), 1e-9);
     }
 
     @Test
     void robotIsReturnedInsideWhenFieldShrinks() {
-        RobotModel robot = new RobotModel(); // робот в (100, 100)
+        RobotModel robot = new RobotModel(); // в (100, 100), смотрит вдоль оси X
 
         robot.setFieldSize(50, 50);
 
-        assertEquals(35, robot.getPositionX(), 1e-9);
-        assertEquals(35, robot.getPositionY(), 1e-9);
+        assertEquals(50 - RobotModel.ROBOT_HALF_SIZE, robot.getPositionX(), 1e-9);
+        assertEquals(50 - RobotModel.ROBOT_HALF_WIDTH, robot.getPositionY(), 1e-9);
     }
 
     @Test
-    void tinyFieldKeepsRobotInCenter() {
+    void robotIsKeptInsideEvenInTinyField() {
         RobotModel robot = new RobotModel();
 
         robot.setFieldSize(20, 20);
 
+        // По горизонтали робот длиннее поля и встаёт в центр, по вертикали упирается в нижнюю стенку
         assertEquals(10, robot.getPositionX(), 1e-9);
-        assertEquals(10, robot.getPositionY(), 1e-9);
+        assertEquals(20 - RobotModel.ROBOT_HALF_WIDTH, robot.getPositionY(), 1e-9);
     }
 
     @Test
@@ -69,10 +67,11 @@ class RobotModelBoundsTest {
         assertTrue(robot.getPositionX() > 500);
     }
 
-    private static void assertInsideField(RobotModel robot) {
+    private static void assertBodyInsideField(RobotModel robot) {
         double x = robot.getPositionX();
         double y = robot.getPositionY();
-        assertTrue(x >= MIN && x <= MAX && y >= MIN && y <= MAX,
-                "robot left the field: " + x + ", " + y);
+        assertTrue(x - robot.getHalfExtentX() >= -1e-9 && x + robot.getHalfExtentX() <= FIELD_SIZE + 1e-9
+                        && y - robot.getHalfExtentY() >= -1e-9 && y + robot.getHalfExtentY() <= FIELD_SIZE + 1e-9,
+                "robot body left the field: " + x + ", " + y);
     }
 }
