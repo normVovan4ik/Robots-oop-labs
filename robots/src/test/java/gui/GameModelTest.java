@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 
 class GameModelTest {
 
+    private static final int FIELD_SIZE = 200;
+
     private final KeyboardControls controls = new KeyboardControls();
 
     @Test
@@ -50,20 +52,20 @@ class GameModelTest {
     @Test
     void robotAndPredatorsStayInsideField() {
         GameModel model = new GameModel(2);
-        model.setFieldSize(200, 200);
+        model.setFieldSize(FIELD_SIZE, FIELD_SIZE);
 
         for (int i = 0; i < 3000; i++) {
             model.update(10, controls);
-            assertInside(model.getRobot());
-            model.getPredators().forEach(GameModelTest::assertInside);
+            assertBodyInsideField(model.getRobot());
+            model.getPredators().forEach(GameModelTest::assertBodyInsideField);
         }
     }
 
-    private static void assertInside(RobotModel model) {
-        double min = RobotModel.ROBOT_HALF_SIZE;
-        double max = 200 - RobotModel.ROBOT_HALF_SIZE;
-        assertTrue(model.getPositionX() >= min && model.getPositionX() <= max
-                        && model.getPositionY() >= min && model.getPositionY() <= max,
-                "left the field: " + model.getPositionX() + ", " + model.getPositionY());
+    private static void assertBodyInsideField(RobotModel robot) {
+        double x = robot.getPositionX();
+        double y = robot.getPositionY();
+        assertTrue(x - robot.getHalfExtentX() >= -1e-9 && x + robot.getHalfExtentX() <= FIELD_SIZE + 1e-9
+                        && y - robot.getHalfExtentY() >= -1e-9 && y + robot.getHalfExtentY() <= FIELD_SIZE + 1e-9,
+                "left the field: " + x + ", " + y);
     }
 }
