@@ -11,7 +11,6 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.geom.AffineTransform;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -126,11 +125,6 @@ public class GameVisualizer extends JPanel
         m_askingRestart = false;
     }
 
-    private static int round(double value)
-    {
-        return (int)(value + 0.5);
-    }
-
     @Override
     public void paint(Graphics g)
     {
@@ -138,13 +132,13 @@ public class GameVisualizer extends JPanel
         Graphics2D g2d = (Graphics2D)g;
         for (RobotModel predator : m_model.getPredators())
         {
-            drawRobot(g2d, predator, Color.RED);
+            RobotPainter.drawRobot(g2d, predator, Color.RED);
         }
         RobotModel robot = m_model.getRobot();
-        drawRobot(g2d, robot, Color.MAGENTA);
+        RobotPainter.drawRobot(g2d, robot, Color.MAGENTA);
         if (!robot.isManual())
         {
-            drawTarget(g2d, robot.getTargetX(), robot.getTargetY());
+            RobotPainter.drawTarget(g2d, robot.getTargetX(), robot.getTargetY());
         }
         if (m_model.isGameOver())
         {
@@ -152,46 +146,9 @@ public class GameVisualizer extends JPanel
         }
     }
 
-    private static void fillOval(Graphics g, int centerX, int centerY, int diam1, int diam2)
-    {
-        g.fillOval(centerX - diam1 / 2, centerY - diam2 / 2, diam1, diam2);
-    }
-
-    private static void drawOval(Graphics g, int centerX, int centerY, int diam1, int diam2)
-    {
-        g.drawOval(centerX - diam1 / 2, centerY - diam2 / 2, diam1, diam2);
-    }
-
-    private void drawRobot(Graphics2D g, RobotModel robot, Color color)
-    {
-        int x = round(robot.getPositionX());
-        int y = round(robot.getPositionY());
-        AffineTransform t = AffineTransform.getRotateInstance(robot.getDirection(), x, y);
-        g.setTransform(t);
-        g.setColor(color);
-        fillOval(g, x, y, 30, 10);
-        g.setColor(Color.BLACK);
-        drawOval(g, x, y, 30, 10);
-        g.setColor(Color.WHITE);
-        fillOval(g, x + 10, y, 5, 5);
-        g.setColor(Color.BLACK);
-        drawOval(g, x + 10, y, 5, 5);
-    }
-
     private void drawGameOver(Graphics2D g)
     {
-        g.setTransform(new AffineTransform());
         g.setColor(Color.BLACK);
         g.drawString("Игра окончена. Нажмите на поле, чтобы начать заново", 10, 20);
-    }
-
-    private void drawTarget(Graphics2D g, int x, int y)
-    {
-        AffineTransform t = AffineTransform.getRotateInstance(0, 0, 0);
-        g.setTransform(t);
-        g.setColor(Color.GREEN);
-        fillOval(g, x, y, 5, 5);
-        g.setColor(Color.BLACK);
-        drawOval(g, x, y, 5, 5);
     }
 }
